@@ -180,6 +180,9 @@ func _apply_rotation() -> void:
 func set_camera_view_active(active: bool) -> void:
     is_controlled = active
     if camera_node:
-        camera_node.current = active
+        if active:
+            camera_node.make_current()
+        else:
+            camera_node.clear_current(false)
     if not active and AudioManager.instance:
         AudioManager.instance.stop_servo()

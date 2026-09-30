@@ -40,6 +40,7 @@ var datapad_active: bool = false
 var time_elapsed: float = 0.0
 
 signal datapad_dismissed
+signal cctv_disengage_requested
 
 func _ready() -> void:
     _build_hud()
@@ -224,13 +225,23 @@ func _build_cctv_overlay(parent: Control) -> void:
     cctv_controls_hint = Label.new()
     cctv_controls_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
     cctv_controls_hint.offset_left = -380
-    cctv_controls_hint.offset_top = -80
+    cctv_controls_hint.offset_top = -65
     cctv_controls_hint.offset_right = 380
-    cctv_controls_hint.offset_bottom = -40
+    cctv_controls_hint.offset_bottom = -35
     cctv_controls_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    cctv_controls_hint.text = "[W/A/S/D] AIM CAMERA  |  [Q / 1 / 2] SWITCH CHANNEL  |  [E / SPACE] DISENGAGE"
+    cctv_controls_hint.text = "[W/A/S/D] AIM  |  [Q / 1 / 2] SWITCH CAM  |  [E / SPACE / ESC] DISENGAGE"
     cctv_controls_hint.modulate = Color(1.0, 0.85, 0.2)
     cctv_overlay.add_child(cctv_controls_hint)
+
+    var disengage_btn = Button.new()
+    disengage_btn.text = "✖ DISENGAGE CCTV FEED (CLICK OR PRESS E / SPACE / ESC)"
+    disengage_btn.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+    disengage_btn.offset_left = -280
+    disengage_btn.offset_top = -125
+    disengage_btn.offset_right = 280
+    disengage_btn.offset_bottom = -80
+    disengage_btn.pressed.connect(func(): emit_signal("cctv_disengage_requested"))
+    cctv_overlay.add_child(disengage_btn)
 
 func _build_datapad_modal(parent: Control) -> void:
     datapad_modal = Control.new()
@@ -327,8 +338,10 @@ func set_cctv_mode(active: bool, cam_id: String = "CAM-01") -> void:
     
     if active:
         cctv_channel_label.text = "FEED: %s" % cam_id
+        Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
         set_glitch_intensity(0.25)
     else:
+        Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
         set_glitch_intensity(0.1)
 
 func set_cctv_channel_text(cam_id: String) -> void:

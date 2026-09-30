@@ -87,6 +87,7 @@ func _connect_hud_events() -> void:
     if not hud:
         return
     hud.datapad_dismissed.connect(_on_datapad_closed)
+    hud.cctv_disengage_requested.connect(_exit_cctv_mode)
 
 func _show_title_screen() -> void:
     current_state = GameState.TITLE
@@ -126,10 +127,20 @@ func _input(event: InputEvent) -> void:
             
     if current_state == GameState.IN_CCTV:
         if event is InputEventKey and event.pressed and not event.echo:
-            if event.keycode == KEY_Q or event.keycode == KEY_1 or event.keycode == KEY_2:
+            if event.keycode == KEY_Q or event.keycode == KEY_1 or event.keycode == KEY_2 or event.keycode == KEY_TAB:
                 _cycle_cctv_camera()
-        if event.is_action_just_pressed("ui_accept"):
+                return
+            if event.keycode in [KEY_E, KEY_SPACE, KEY_ESCAPE, KEY_ENTER, KEY_BACKSPACE]:
+                _exit_cctv_mode()
+                return
+
+        if event.is_action_just_pressed("interact") or event.is_action_just_pressed("pause"):
             _exit_cctv_mode()
+            return
+
+        if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+            _exit_cctv_mode()
+            return
 
 func _physics_process(delta: float) -> void:
     if current_state == GameState.IN_CCTV and active_cctv_camera:
@@ -201,7 +212,7 @@ func _exit_cctv_mode() -> void:
     if player:
         player.lock_player(false)
         if player.camera:
-            player.camera.current = true
+            player.camera.make_current()
             
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     
