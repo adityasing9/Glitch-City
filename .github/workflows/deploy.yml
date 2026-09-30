@@ -27,16 +27,27 @@ jobs:
 
       - name: Setup Godot Export Templates
         run: |
-          mkdir -v -p ~/.local/share/godot/export_templates/
-          mkdir -v -p ~/.config/
-          mv -v /root/.config/godot ~/.config/godot
-          mv -v /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/4.3.stable
+          mkdir -p ~/.local/share/godot/export_templates
+          mkdir -p ~/.config/godot
+          if [ -d "/root/.local/share/godot/export_templates/4.3.stable" ]; then
+            cp -r /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/
+          fi
+          if [ -d "/root/.config/godot" ]; then
+            cp -r /root/.config/godot/* ~/.config/godot/ 2>/dev/null || true
+          fi
 
-      - name: Export Web Project
+      - name: Import and Export Web Project
         run: |
-          mkdir -v -p build/web
+          mkdir -p build/web
+          # Initialize project cache and class registry
+          godot --headless --editor --quit || true
+          # Export for web release
           godot --headless -v --export-release "Web" build/web/index.html
+          # Include cross-origin service worker and headers
           cp coi-serviceworker.js build/web/
+          if [ -f "_headers" ]; then
+            cp _headers build/web/
+          fi
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
