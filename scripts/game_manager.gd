@@ -117,14 +117,6 @@ func _input(event: InputEvent) -> void:
             _close_datapad()
         return
 
-    if event.is_action_just_pressed("pause"):
-        if current_state == GameState.IN_CCTV:
-            _exit_cctv_mode()
-        elif current_state == GameState.PLAYING:
-            _pause_game()
-        elif current_state == GameState.PAUSED:
-            _resume_game()
-            
     if current_state == GameState.IN_CCTV:
         if event is InputEventKey and event.pressed and not event.echo:
             if event.keycode == KEY_Q or event.keycode == KEY_1 or event.keycode == KEY_2 or event.keycode == KEY_TAB:
@@ -138,9 +130,23 @@ func _input(event: InputEvent) -> void:
             _exit_cctv_mode()
             return
 
-        if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+        if event is InputEventMouseButton and event.pressed:
             _exit_cctv_mode()
             return
+        return
+
+    if event.is_action_just_pressed("pause"):
+        if current_state == GameState.PLAYING:
+            _pause_game()
+            return
+        elif current_state == GameState.PAUSED:
+            _resume_game()
+            return
+
+    if current_state == GameState.PLAYING:
+        if event is InputEventMouseButton and event.pressed:
+            if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+                Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _physics_process(delta: float) -> void:
     if current_state == GameState.IN_CCTV and active_cctv_camera:

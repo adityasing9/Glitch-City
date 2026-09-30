@@ -17,6 +17,10 @@ func _build_menu() -> void:
     var bg = ColorRect.new()
     bg.set_anchors_preset(Control.PRESET_FULL_RECT)
     bg.color = Color(0.02, 0.03, 0.05, 0.8)
+    bg.gui_input.connect(func(ev):
+        if ev is InputEventMouseButton and ev.pressed:
+            emit_signal("resume_requested")
+    )
     root.add_child(bg)
 
     var center = CenterContainer.new()
@@ -34,8 +38,14 @@ func _build_menu() -> void:
     title.modulate = Color(0.1, 0.9, 1.0)
     vbox.add_child(title)
 
+    var subtitle = Label.new()
+    subtitle.text = "[ CLICK ANYWHERE OR PRESS ESC TO RESUME ]"
+    subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    subtitle.modulate = Color(0.6, 0.8, 0.9)
+    vbox.add_child(subtitle)
+
     var spacer = Control.new()
-    spacer.custom_minimum_size = Vector2(0, 20)
+    spacer.custom_minimum_size = Vector2(0, 15)
     vbox.add_child(spacer)
 
     var resume_btn = Button.new()

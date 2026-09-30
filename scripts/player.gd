@@ -95,6 +95,10 @@ func _unhandled_input(event: InputEvent) -> void:
     if is_locked:
         return
         
+    if event is InputEventMouseButton and event.pressed:
+        if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+            Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
     if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
         rotate_y(-event.relative.x * mouse_sensitivity)
         head.rotate_x(-event.relative.y * mouse_sensitivity)
