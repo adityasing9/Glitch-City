@@ -38,6 +38,7 @@ var glitch_material: ShaderMaterial
 var in_cctv_mode: bool = false
 var datapad_active: bool = false
 var time_elapsed: float = 0.0
+var click_to_look_label: Label
 
 signal datapad_dismissed
 signal cctv_disengage_requested
@@ -96,9 +97,11 @@ func _build_hud() -> void:
     top_right.offset_top = 25
     top_right.offset_right = -30
     top_right.offset_bottom = 90
+    top_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
     root_control.add_child(top_right)
 
     var obj_vbox = VBoxContainer.new()
+    obj_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
     top_right.add_child(obj_vbox)
 
     var obj_header = Label.new()
@@ -119,6 +122,7 @@ func _build_hud() -> void:
     scanner_container.offset_top = 45
     scanner_container.offset_right = 260
     scanner_container.offset_bottom = 85
+    scanner_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
     scanner_container.visible = false
     root_control.add_child(scanner_container)
 
@@ -130,6 +134,7 @@ func _build_hud() -> void:
     # Center Reticle / Crosshair
     crosshair = Control.new()
     crosshair.set_anchors_preset(Control.PRESET_CENTER)
+    crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
     root_control.add_child(crosshair)
 
     reticle_center = ColorRect.new()
@@ -157,6 +162,7 @@ func _build_hud() -> void:
     prompt_container.offset_top = -140
     prompt_container.offset_right = 260
     prompt_container.offset_bottom = -95
+    prompt_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
     prompt_container.visible = false
     root_control.add_child(prompt_container)
 
@@ -165,6 +171,20 @@ func _build_hud() -> void:
     prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
     prompt_label.modulate = Color(0.2, 1.0, 0.7)
     prompt_container.add_child(prompt_label)
+
+    # Click to Look helper banner
+    click_to_look_label = Label.new()
+    click_to_look_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+    click_to_look_label.offset_left = -300
+    click_to_look_label.offset_top = -55
+    click_to_look_label.offset_right = 300
+    click_to_look_label.offset_bottom = -25
+    click_to_look_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    click_to_look_label.text = "[ 🖱️ CLICK TO LOCK MOUSE & LOOK ]"
+    click_to_look_label.modulate = Color(1.0, 0.85, 0.2)
+    click_to_look_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    click_to_look_label.visible = false
+    root_control.add_child(click_to_look_label)
 
     # 3. CCTV Feed Mode Overlay
     _build_cctv_overlay(root_control)
@@ -305,6 +325,10 @@ func _process(delta: float) -> void:
     if in_cctv_mode:
         var blink = int(time_elapsed * 2.5) % 2 == 0
         cctv_rec_label.modulate = Color(1.0, 0.2, 0.3) if blink else Color(0.4, 0.1, 0.1)
+
+    if click_to_look_label:
+        var needs_lock = (Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED and not in_cctv_mode and not datapad_active)
+        click_to_look_label.visible = needs_lock
 
 func set_prompt(text: String) -> void:
     if text.is_empty():

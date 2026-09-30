@@ -91,18 +91,19 @@ func _setup_components() -> void:
     floor_snap_length = 0.25
     floor_max_angle = deg_to_rad(45.0)
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
     if is_locked:
         return
         
-    if event is InputEventMouseButton and event.pressed:
+    if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
         if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
             Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
-    if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-        rotate_y(-event.relative.x * mouse_sensitivity)
-        head.rotate_x(-event.relative.y * mouse_sensitivity)
-        head.rotation.x = clamp(head.rotation.x, deg_to_rad(-88), deg_to_rad(88))
+    if event is InputEventMouseMotion:
+        if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+            rotate_y(-event.relative.x * mouse_sensitivity)
+            head.rotate_x(-event.relative.y * mouse_sensitivity)
+            head.rotation.x = clamp(head.rotation.x, deg_to_rad(-88), deg_to_rad(88))
         
     if event is InputEventKey and event.pressed and not event.echo:
         if event.keycode == KEY_F:
