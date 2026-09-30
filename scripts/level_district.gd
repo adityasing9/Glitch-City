@@ -127,10 +127,27 @@ func _build_environment() -> void:
     add_child(core_light)
 
 func _create_chasm_details() -> void:
-    _create_box(Vector3(-5.5, 0.2, 0.2), Vector3(11.0, 0.4, 0.4), neon_amber_mat, true)
-    _create_box(Vector3(5.5, 0.2, 0.2), Vector3(11.0, 0.4, 0.4), neon_amber_mat, true)
-    _create_box(Vector3(-5.5, 0.2, -12.2), Vector3(11.0, 0.4, 0.4), neon_amber_mat, true)
-    _create_box(Vector3(5.5, 0.2, -12.2), Vector3(11.0, 0.4, 0.4), neon_amber_mat, true)
+    # Danger warning curbs on South edge with 4.4m wide OPENING for bridge entrance at center
+    _create_box(Vector3(-6.6, 0.2, 0.2), Vector3(8.8, 0.4, 0.4), neon_amber_mat, true)
+    _create_box(Vector3(6.6, 0.2, 0.2), Vector3(8.8, 0.4, 0.4), neon_amber_mat, true)
+    
+    # Danger warning curbs on North edge with 4.4m wide OPENING for bridge exit
+    _create_box(Vector3(-6.6, 0.2, -12.2), Vector3(8.8, 0.4, 0.4), neon_amber_mat, true)
+    _create_box(Vector3(6.6, 0.2, -12.2), Vector3(8.8, 0.4, 0.4), neon_amber_mat, true)
+
+    # South Bridge Entrance Guide Pylons (Glowing Cyan)
+    _create_box(Vector3(-2.0, 0.8, 0.3), Vector3(0.3, 1.6, 0.3), neon_cyan_mat, true)
+    _create_box(Vector3(2.0, 0.8, 0.3), Vector3(0.3, 1.6, 0.3), neon_cyan_mat, true)
+
+    # North Bridge Exit Guide Pylons (Glowing Cyan)
+    _create_box(Vector3(-2.0, 0.8, -12.3), Vector3(0.3, 1.6, 0.3), neon_cyan_mat, true)
+    _create_box(Vector3(2.0, 0.8, -12.3), Vector3(0.3, 1.6, 0.3), neon_cyan_mat, true)
+
+    # Floor runway light strips pointing directly onto bridge
+    for z_off in [1.0, 2.5, 4.0]:
+        _create_box(Vector3(0, 0.02, z_off), Vector3(0.3, 0.04, 0.8), neon_cyan_mat, false)
+        _create_box(Vector3(-1.8, 0.02, z_off), Vector3(0.1, 0.04, 0.8), neon_amber_mat, false)
+        _create_box(Vector3(1.8, 0.02, z_off), Vector3(0.1, 0.04, 0.8), neon_amber_mat, false)
 
     var abyss_floor = MeshInstance3D.new()
     var plane = PlaneMesh.new()

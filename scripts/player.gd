@@ -87,6 +87,9 @@ func _setup_components() -> void:
     scan_ray.collide_with_areas = true
     scan_ray.collide_with_bodies = true
     camera.add_child(scan_ray)
+    
+    floor_snap_length = 0.25
+    floor_max_angle = deg_to_rad(45.0)
 
 func _unhandled_input(event: InputEvent) -> void:
     if is_locked:
@@ -121,7 +124,12 @@ func _handle_movement(delta: float) -> void:
     if not is_on_floor():
         velocity.y -= gravity * delta
     else:
-        velocity.y = 0.0
+        if Input.is_key_pressed(KEY_SPACE):
+            velocity.y = 5.2
+            if AudioManager.instance:
+                AudioManager.instance.play_beep(0.8)
+        else:
+            velocity.y = 0.0
 
     var is_sprinting = Input.is_action_pressed("sprint")
     var current_speed = sprint_speed if is_sprinting else walk_speed
