@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 signal interaction_prompt_changed(prompt_text: String)
 signal player_fell_in_abyss
+signal scanner_data_updated(object_name: String, state_text: String, observer_text: String)
 
 @export var walk_speed: float = 4.2
 @export var sprint_speed: float = 6.8
@@ -15,9 +16,13 @@ var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 1
 var head: Node3D
 var camera: Camera3D
 var interact_ray: RayCast3D
+var scan_ray: RayCast3D
+var flashlight: SpotLight3D
 
 var is_locked: bool = false
+var flashlight_on: bool = false
 var current_interactable: Node = null
+var current_scanned_obj: ObservableObject = null
 var initial_spawn_point: Vector3
 
 var bob_timer: float = 0.0
@@ -56,13 +61,32 @@ func _setup_components() -> void:
     head.add_child(camera)
     original_camera_y = camera.position.y
     
+    # Flashlight / Cybernetic Eye Illuminator
+    flashlight = SpotLight3D.new()
+    flashlight.position = Vector3(0.2, -0.15, -0.2)
+    flashlight.light_color = Color(0.85, 0.95, 1.0)
+    flashlight.light_energy = 2.6
+    flashlight.spot_range = 25.0
+    flashlight.spot_angle = 35.0
+    flashlight.spot_attenuation = 1.2
+    flashlight.visible = false
+    camera.add_child(flashlight)
+    
     # Interaction RayCast
     interact_ray = RayCast3D.new()
     interact_ray.target_position = Vector3(0, 0, -3.2)
-    interact_ray.collision_mask = 1 | 2 # world & interactables
+    interact_ray.collision_mask = 1 | 2
     interact_ray.collide_with_areas = true
     interact_ray.collide_with_bodies = true
     camera.add_child(interact_ray)
+    
+    # Scanner RayCast (longer range for diagnostics)
+    scan_ray = RayCast3D.new()
+    scan_ray.target_position = Vector3(0, 0, -30.0)
+    scan_ray.collision_mask = 1 | 2
+    scan_ray.collide_with_areas = true
+    scan_ray.collide_with_bodies = true
+    camera.add_child(scan_ray)
 
 func _unhandled_input(event: InputEvent) -> void:
     if is_locked:
@@ -72,6 +96,17 @@ func _unhandled_input(event: InputEvent) -> void:
         rotate_y(-event.relative.x * mouse_sensitivity)
         head.rotate_x(-event.relative.y * mouse_sensitivity)
         head.rotation.x = clamp(head.rotation.x, deg_to_rad(-88), deg_to_rad(88))
+        
+    if event is InputEventKey and event.pressed and not event.echo:
+        if event.keycode == KEY_F:
+            _toggle_flashlight()
+
+func _toggle_flashlight() -> void:
+    flashlight_on = not flashlight_on
+    if flashlight:
+        flashlight.visible = flashlight_on
+    if AudioManager.instance:
+        AudioManager.instance.play_flashlight()
 
 func _physics_process(delta: float) -> void:
     if is_locked:
@@ -79,6 +114,7 @@ func _physics_process(delta: float) -> void:
         
     _handle_movement(delta)
     _handle_interaction()
+    _handle_scanner()
     _check_abyss()
 
 func _handle_movement(delta: float) -> void:
@@ -147,12 +183,39 @@ func _handle_interaction() -> void:
     if current_interactable and Input.is_action_just_pressed("interact"):
         if current_interactable.has_method("interact"):
             current_interactable.interact()
-            # Refresh prompt
             emit_signal("interaction_prompt_changed", current_interactable.get_interaction_prompt())
+
+func _handle_scanner() -> void:
+    var scanned: ObservableObject = null
+    if scan_ray and scan_ray.is_colliding():
+        var col = scan_ray.get_collider()
+        var candidate = col
+        while candidate and candidate != get_tree().root:
+            if candidate is ObservableObject:
+                scanned = candidate
+                break
+            candidate = candidate.get_parent()
+            
+    if scanned != current_scanned_obj:
+        current_scanned_obj = scanned
+        if current_scanned_obj:
+            var obs_by = "OBSERVED BY: "
+            if current_scanned_obj.is_observed_by_player and current_scanned_obj.is_observed_by_camera:
+                obs_by += "PLAYER + CCTV CAM"
+            elif current_scanned_obj.is_observed_by_player:
+                obs_by += "PLAYER OCULAR FEED"
+            elif current_scanned_obj.is_observed_by_camera:
+                obs_by += "SURVEILLANCE CAM-01"
+            else:
+                obs_by += "[NONE - DISSOLVING]"
+                
+            var state_str = "STABLE" if current_scanned_obj.is_observed else "UNOBSERVED // DECAYING"
+            emit_signal("scanner_data_updated", current_scanned_obj.object_name, state_str, obs_by)
+        else:
+            emit_signal("scanner_data_updated", "", "", "")
 
 func _check_abyss() -> void:
     if global_position.y < -12.0:
-        # Fell off the unobserved bridge into the glitch abyss!
         emit_signal("player_fell_in_abyss")
         respawn()
 
@@ -167,3 +230,4 @@ func lock_player(locked: bool) -> void:
     velocity = Vector3.ZERO
     if locked:
         emit_signal("interaction_prompt_changed", "")
+        emit_signal("scanner_data_updated", "", "", "")

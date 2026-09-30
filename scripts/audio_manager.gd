@@ -4,6 +4,7 @@ extends Node
 static var instance: AudioManager
 
 var ambient_player: AudioStreamPlayer
+var synth_player: AudioStreamPlayer
 var sfx_player: AudioStreamPlayer
 var servo_player: AudioStreamPlayer
 var glitch_player: AudioStreamPlayer
@@ -15,6 +16,9 @@ var sfx_success: AudioStreamWAV
 var sfx_step: AudioStreamWAV
 var sfx_terminal: AudioStreamWAV
 var sfx_drone: AudioStreamWAV
+var sfx_flashlight: AudioStreamWAV
+var sfx_datapad: AudioStreamWAV
+var sfx_synth_arp: AudioStreamWAV
 
 func _ready() -> void:
     instance = self
@@ -28,6 +32,13 @@ func _ready() -> void:
     ambient_player.bus = "Master"
     add_child(ambient_player)
     ambient_player.play()
+    
+    synth_player = AudioStreamPlayer.new()
+    synth_player.stream = sfx_synth_arp
+    synth_player.volume_db = -14.0
+    synth_player.bus = "Master"
+    add_child(synth_player)
+    synth_player.play()
     
     sfx_player = AudioStreamPlayer.new()
     sfx_player.bus = "Master"
@@ -53,12 +64,21 @@ func _generate_all_sounds() -> void:
     sfx_success = _create_chord([440.0, 554.37, 659.25, 830.61], 1.2, 22050)
     sfx_step = _create_step_sound(0.1, 22050)
     sfx_drone = _create_ambient_drone(4.0, 22050)
+    sfx_flashlight = _create_click_sound(0.06, 22050)
+    sfx_datapad = _create_chord([587.33, 880.0, 1174.66], 0.35, 22050)
+    sfx_synth_arp = _create_synth_music(8.0, 22050)
 
 func play_beep(pitch_scale: float = 1.0) -> void:
     _play_oneshot(sfx_beep, -4.0, pitch_scale)
 
 func play_terminal() -> void:
     _play_oneshot(sfx_terminal, -6.0, randf_range(0.9, 1.1))
+
+func play_flashlight() -> void:
+    _play_oneshot(sfx_flashlight, -2.0, randf_range(0.95, 1.05))
+
+func play_datapad() -> void:
+    _play_oneshot(sfx_datapad, -4.0, 1.0)
 
 func play_glitch() -> void:
     if glitch_player and not glitch_player.playing:
@@ -78,6 +98,12 @@ func start_servo() -> void:
 func stop_servo() -> void:
     if servo_player and servo_player.playing:
         servo_player.stop()
+
+func set_music_intensity(cctv_mode: bool) -> void:
+    if synth_player:
+        var target_vol = -8.0 if cctv_mode else -14.0
+        var tween = create_tween()
+        tween.tween_property(synth_player, "volume_db", target_vol, 0.5)
 
 func _play_oneshot(sound: AudioStreamWAV, volume_db: float = 0.0, pitch: float = 1.0) -> void:
     var p = AudioStreamPlayer.new()
@@ -101,6 +127,25 @@ func _create_tone(freq: float, duration: float, volume: float, sample_rate: int)
         var int_val = int(clamp(sample_val, -1.0, 1.0) * 32767.0)
         bytes.encode_s16(i * 2, int_val)
     
+    var stream = AudioStreamWAV.new()
+    stream.format = AudioStreamWAV.FORMAT_16_BITS
+    stream.mix_rate = sample_rate
+    stream.stereo = false
+    stream.data = bytes
+    return stream
+
+func _create_click_sound(duration: float, sample_rate: int) -> AudioStreamWAV:
+    var num_samples = int(duration * sample_rate)
+    var bytes = PackedByteArray()
+    bytes.resize(num_samples * 2)
+    
+    for i in range(num_samples):
+        var t = float(i) / float(sample_rate)
+        var env = pow(1.0 - (float(i) / float(num_samples)), 4.0)
+        var pulse = sin(2.0 * PI * 2400.0 * t) * env * 0.9
+        var int_val = int(clamp(pulse, -1.0, 1.0) * 32767.0)
+        bytes.encode_s16(i * 2, int_val)
+        
     var stream = AudioStreamWAV.new()
     stream.format = AudioStreamWAV.FORMAT_16_BITS
     stream.mix_rate = sample_rate
@@ -211,6 +256,38 @@ func _create_ambient_drone(duration: float, sample_rate: int) -> AudioStreamWAV:
         var int_val = int(clamp(sample_val, -1.0, 1.0) * 32767.0)
         bytes.encode_s16(i * 2, int_val)
     
+    var stream = AudioStreamWAV.new()
+    stream.format = AudioStreamWAV.FORMAT_16_BITS
+    stream.mix_rate = sample_rate
+    stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+    stream.loop_begin = 0
+    stream.loop_end = num_samples
+    stream.stereo = false
+    stream.data = bytes
+    return stream
+
+func _create_synth_music(duration: float, sample_rate: int) -> AudioStreamWAV:
+    var num_samples = int(duration * sample_rate)
+    var bytes = PackedByteArray()
+    bytes.resize(num_samples * 2)
+    
+    var notes = [110.0, 130.81, 146.83, 164.81, 196.0, 164.81, 146.83, 130.81] # A minor pentatonic synth loop
+    var note_duration = duration / float(notes.size())
+    
+    for i in range(num_samples):
+        var t = float(i) / float(sample_rate)
+        var note_idx = int(t / note_duration) % notes.size()
+        var note_freq = notes[note_idx]
+        var note_t = fmod(t, note_duration)
+        var env = pow(1.0 - (note_t / note_duration), 1.8)
+        
+        # Cyberpunk synth bass + soft sawtooth harmonic
+        var bass = sin(2.0 * PI * note_freq * t) * 0.5
+        var arp = (sin(2.0 * PI * (note_freq * 2.0) * t) + sin(2.0 * PI * (note_freq * 3.0) * t) * 0.3) * 0.3
+        var sample_val = (bass + arp) * env * 0.35
+        var int_val = int(clamp(sample_val, -1.0, 1.0) * 32767.0)
+        bytes.encode_s16(i * 2, int_val)
+        
     var stream = AudioStreamWAV.new()
     stream.format = AudioStreamWAV.FORMAT_16_BITS
     stream.mix_rate = sample_rate

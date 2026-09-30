@@ -5,6 +5,7 @@ enum GameState {
     TITLE,
     PLAYING,
     IN_CCTV,
+    READING_DATAPAD,
     PAUSED,
     ENDING
 }
@@ -34,6 +35,7 @@ func setup_references(p_player: Player, p_level: LevelDistrict, p_hud: HUD) -> v
     
     _connect_level_events()
     _connect_player_events()
+    _connect_hud_events()
     _show_title_screen()
 
 func _connect_level_events() -> void:
@@ -42,9 +44,13 @@ func _connect_level_events() -> void:
         
     if level.camera_station:
         level.camera_station.station_accessed.connect(_on_cctv_station_accessed)
+        level.camera_station.station_switched_camera.connect(_on_station_switched_cam)
         
     if level.security_camera:
         level.security_camera.locked_target_changed.connect(_on_camera_target_changed)
+        
+    if level.security_camera_2:
+        level.security_camera_2.locked_target_changed.connect(_on_camera_target_changed)
         
     if level.override_terminal:
         level.override_terminal.interacted.connect(_on_override_terminal_interacted)
@@ -55,6 +61,9 @@ func _connect_level_events() -> void:
     if level.security_door:
         level.security_door.door_opened.connect(_on_security_door_opened)
 
+    for pad in level.datapads:
+        pad.datapad_read.connect(_on_datapad_read)
+
 func _connect_player_events() -> void:
     if not player:
         return
@@ -64,10 +73,20 @@ func _connect_player_events() -> void:
             hud.set_prompt(prompt)
     )
     
+    player.scanner_data_updated.connect(func(obj_name, state_str, obs_str):
+        if current_state == GameState.PLAYING and hud:
+            hud.update_scanner(obj_name, state_str, obs_str)
+    )
+    
     player.player_fell_in_abyss.connect(func():
         if hud:
             hud.set_prompt("REALITY COLLAPSE - RESPAWNED")
     )
+
+func _connect_hud_events() -> void:
+    if not hud:
+        return
+    hud.datapad_dismissed.connect(_on_datapad_closed)
 
 func _show_title_screen() -> void:
     current_state = GameState.TITLE
@@ -86,12 +105,17 @@ func _on_start_game() -> void:
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     
     if hud:
-        hud.set_objective("Cross the fractured district ahead. Note: Anything unobserved dissolves.")
+        hud.set_objective("Investigate Sector 07. [F: Flashlight | E: Interact | Look away: Shift Reality]")
 
 func _input(event: InputEvent) -> void:
     if current_state == GameState.TITLE or current_state == GameState.ENDING:
         return
         
+    if current_state == GameState.READING_DATAPAD:
+        if event.is_action_just_pressed("interact") or event.is_action_just_pressed("pause") or event.is_action_just_pressed("ui_accept"):
+            _close_datapad()
+        return
+
     if event.is_action_just_pressed("pause"):
         if current_state == GameState.IN_CCTV:
             _exit_cctv_mode()
@@ -101,7 +125,10 @@ func _input(event: InputEvent) -> void:
             _resume_game()
             
     if current_state == GameState.IN_CCTV:
-        if event.is_action_just_pressed("interact") or event.is_action_just_pressed("ui_accept"):
+        if event is InputEventKey and event.pressed and not event.echo:
+            if event.keycode == KEY_Q or event.keycode == KEY_1 or event.keycode == KEY_2:
+                _cycle_cctv_camera()
+        if event.is_action_just_pressed("ui_accept"):
             _exit_cctv_mode()
 
 func _physics_process(delta: float) -> void:
@@ -132,9 +159,34 @@ func _on_cctv_station_accessed(sec_cam: SecurityCamera) -> void:
         
     sec_cam.set_camera_view_active(true)
     
+    if AudioManager.instance:
+        AudioManager.instance.set_music_intensity(true)
+        
     if hud:
-        hud.set_cctv_mode(true)
+        hud.set_cctv_mode(true, sec_cam.camera_id)
         hud.set_objective("Aim CAM-01 at the Quantum Bridge to lock reality matrix.")
+
+func _cycle_cctv_camera() -> void:
+    if not level or not level.camera_station:
+        return
+    var next_cam = level.camera_station.cycle_camera(true)
+    _switch_to_cctv_camera(next_cam)
+
+func _on_station_switched_cam(cam: SecurityCamera) -> void:
+    if current_state == GameState.IN_CCTV:
+        _switch_to_cctv_camera(cam)
+
+func _switch_to_cctv_camera(cam: SecurityCamera) -> void:
+    if active_cctv_camera:
+        active_cctv_camera.set_camera_view_active(false)
+        
+    active_cctv_camera = cam
+    if cam:
+        cam.set_camera_view_active(true)
+        if hud:
+            hud.set_cctv_channel_text(cam.camera_id)
+        if AudioManager.instance:
+            AudioManager.instance.play_beep(1.3)
 
 func _exit_cctv_mode() -> void:
     if current_state != GameState.IN_CCTV:
@@ -153,21 +205,44 @@ func _exit_cctv_mode() -> void:
             
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     
+    if AudioManager.instance:
+        AudioManager.instance.set_music_intensity(false)
+        
     if hud:
         hud.set_cctv_mode(false)
         if bridge_permanently_locked:
-            hud.set_objective("Bridge is observed & stabilized! Cross to Sector 07 Gateway.")
+            hud.set_objective("Bridge is stabilized! Cross to Sector 07 Gateway.")
         else:
-            hud.set_objective("Return to CCTV console to lock the bridge in place.")
+            hud.set_objective("Aim CAM-01 at the bridge to anchor it before crossing.")
 
 func _on_camera_target_changed(has_target: bool, target_name: String) -> void:
-    if hud:
+    if hud and current_state == GameState.IN_CCTV:
         hud.update_cctv_target(has_target, target_name)
         
     if has_target and "bridge" in target_name.to_lower():
         bridge_permanently_locked = true
         if AudioManager.instance:
             AudioManager.instance.play_beep(1.6)
+
+func _on_datapad_read(log_title: String, log_author: String, log_body: String) -> void:
+    current_state = GameState.READING_DATAPAD
+    if player:
+        player.lock_player(true)
+    if hud:
+        hud.show_datapad(log_title, log_author, log_body)
+
+func _close_datapad() -> void:
+    if hud:
+        hud.hide_datapad()
+
+func _on_datapad_closed() -> void:
+    if current_state == GameState.READING_DATAPAD:
+        current_state = GameState.PLAYING
+        if player:
+            player.lock_player(false)
+            if player.camera:
+                player.camera.current = true
+        Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _on_override_terminal_interacted(_terminal_id: String) -> void:
     if not gate_unlocked:

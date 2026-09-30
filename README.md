@@ -3,7 +3,7 @@
 > *"Anything that is not being observed can change."*  
 > *"If nobody observes something, the system is free to redefine it."*
 
-**GLITCH CITY** is a complete, playable 3D cyberpunk mystery/puzzle prototype built in **Godot 4.x**. Reality in District 07 is not stable—it is governed by **WATCHER**, an omnipresent AI surveillance nexus that conserves memory by only rendering that which is directly under observation.
+**GLITCH CITY** is a complete 3D cyberpunk mystery/puzzle game built in **Godot 4.x**. Reality in District 07 is not stable—it is governed by **WATCHER**, an AI surveillance nexus that conserves memory by only rendering that which is directly under observation.
 
 ---
 
@@ -14,59 +14,80 @@
 | **Move** | `W` / `A` / `S` / `D` |
 | **Look** | Mouse (Smooth 3D first-person look) |
 | **Sprint** | `Shift` |
-| **Interact / Pilot CCTV** | `E` |
-| **Pan / Tilt CCTV Feed** | `W` / `A` / `S` / `D` or Mouse |
-| **Disengage CCTV Feed** | `E` or `Space` |
+| **Cybernetic Flashlight** | `F` |
+| **Interact / Decrypt Datapads** | `E` |
+| **Pan / Tilt CCTV Feed** | `W` / `A` / `S` / `D` |
+| **Switch Camera Channels** | `Q` / `1` / `2` *(In CCTV mode)* |
+| **Disengage CCTV / Close Datapad** | `E` or `Space` or `Esc` |
 | **Pause / Resume** | `Esc` |
 
 ---
 
-## 🧩 Gameplay & Puzzle Walkthrough
+## 🌟 Expanded Gameplay Features
 
-1. **Plaza & Holographic Billboards**:
-   - Explore the neon-drenched streets of Sector 07. Notice the electronic billboards whose messages rewrite themselves when you turn away.
-2. **The Quantum Fracture**:
-   - Approach the chasm splitting the district. A quantum lattice bridge spans the gap.
-   - When you look at the bridge, it holds a solid cyan grid. But when you look away, reality de-materializes and the bridge dissolves!
-3. **Surveillance Camera (CAM-01)**:
-   - Walk up to the CCTV console station overlooking the chasm and press `[E]` to access the live camera feed.
-   - Use `W/A/S/D` to pan and tilt CAM-01 toward the bridge until the telemetry locks:
-     `[TARGET ACQUIRED: QUANTUM LATTICE BRIDGE - REALITY STABILIZED]`
-   - Press `[E]` or `[Space]` to disengage. The camera spotlight remains trained on the bridge, anchoring its reality matrix even when you turn your back!
+### 1. 📹 Multi-Camera CCTV Grid (`CAM-01` & `CAM-02`)
+- Access the multi-channel surveillance station to switch between camera feeds.
+- **`CAM-01`**: High-angle chasm view overlooking the quantum bridge.
+- **`CAM-02`**: Rooftop surveillance post monitoring the west alley and vertical platforms.
+- Active surveillance spotlights lock objects in physical phase space.
+
+### 2. 🛗 Quantum Kinetic Lift
+- A vertical platform situated in the west alleyway leading to elevated catwalks.
+- **Quantum Observer Effect**: The platform **only ascends or descends when you look away**! If you or any camera observes it, the quantum wave function collapses and it freezes solid.
+
+### 3. 🔍 Diagnostic Cybernetic Reticle Scanner
+- Aiming your crosshair at any observable object displays a real-time HUD telemetry readout:
+  - Object identification
+  - Reality stability state (`STABLE` vs `UNOBSERVED // DECAYING`)
+  - Active anchors (`PLAYER OCULAR FEED`, `SURVEILLANCE CAM-01`, etc.)
+
+### 4. 💾 Encrypted Memory Shards (Lore Datapads)
+- Three collectible datapads scattered across the district revealing the true lore of WATCHER:
+  - **Shard 01**: *The Blink Anomaly* (Dr. A. Vance)
+  - **Shard 02**: *Anchoring Wave Functions* (Chief Architect Khalil)
+  - **Shard 03**: *Memory Conservation Protocol* (WATCHER Subroutine 00)
+- Interactive holographic reader modal with typing audio.
+
+### 5. 🔦 Retinal Illuminator (Flashlight)
+- Press `[F]` to toggle a tactical blue-white spotlight with realistic falloff and mechanical sound effects.
+
+### 6. 🎶 Reactive Cyberpunk Audio & Synth Music
+- Procedurally generated 16-bit audio engine featuring:
+  - Melodic cyberpunk synth bass & arpeggios that intensify in CCTV mode
+  - Stepper motor servo whirrs for cameras
+  - Reality shift static glitch bursts
+  - Tactile terminal key-clicks and UI chimes
+
+---
+
+## 🧩 Complete Puzzle Walkthrough
+
+1. **Sector 07 Plaza**:
+   - Explore the neon-drenched district. Pick up **Shard 01** on the curb.
+   - Observe the electronic billboard, turn your back, and look back to watch its text rewrite itself in real time.
+2. **Quantum Kinetic Lift (Optional Catwalk Exploration)**:
+   - Step onto the platform on the west side. Look up at the sky or turn around to let it rise to the elevated catwalk to collect **Shard 02**.
+3. **Stabilizing the Chasm Bridge**:
+   - Approach the surveillance terminal overlooking the chasm. Press `[E]` to interface with `CAM-01`.
+   - Pan and tilt the camera toward the bridge until you hear the confirmation chime and see:
+     `>>> TARGET ACQUIRED: QUANTUM LATTICE BRIDGE [REALITY STABILIZED] <<<`
+   - Disengage (`[Space]`). The camera maintains permanent line of sight, allowing you to walk across the bridge with your back turned.
 4. **Maintenance Terminal Override**:
-   - Safely cross the locked bridge to the North Gateway.
-   - Interface with Sub-Terminal 04. It initiates an override for Security Gate 07, but with an anomaly:
+   - Cross to the North Plaza and collect **Shard 03**.
+   - Interface with Sub-Terminal 04. It initiates an override for Gate 07, but announces:
      *"DIRECT OBSERVATION INHIBITS STATE TRANSITION. LOOK AWAY TO ALLOW PASSAGE."*
 5. **The Unobserved Gate**:
-   - Turn your back to Gate 07. Unobserved, the security protocol re-manifests the gateway. Turn back to see the open corridor!
+   - Turn around so Gate 07 is out of your field of view. Unobserved, the security system re-manifests the gateway. Turn back to find the inner corridor open.
 6. **WATCHER Server Core**:
-   - Step into the inner server room and access the central WATCHER terminal to unveil the story revelation.
+   - Enter the server nexus and interface with the final terminal to uncover the revelation:
+     *"The city was never malfunctioning. WATCHER is deciding what exists."*
 
 ---
 
-## 🛠️ Architecture & Systems
+## 🌐 Online & Local Play
 
-- **`ObservationManager`** (`scripts/observation_manager.gd`):
-  - Field-of-view, frustum, and raycast occlusion manager tracking observation by player and active security cameras.
-  - Dynamically computes district reality coherence and triggers screen-space glitch effects.
-- **`ObservableObject`** (`scripts/observable_object.gd`):
-  - State machine base class (`NORMAL`, `OBSERVED`, `UNOBSERVED`, `GLITCHED`, `CHANGED`).
-- **`ObservableBridge`** (`scripts/observable_bridge.gd`):
-  - Procedural collision & hologram dissolve shader that materializes when observed and dissolves into digital noise when unobserved.
-- **`SecurityCamera`** (`scripts/security_camera.gd`):
-  - Remote-steered CCTV camera with pan/tilt servos, spotlight cone, target locking, and continuous observation beam.
-- **`ObservableDoor` & `ObservableSign`**:
-  - Reality-shifting gateway and billboard that reconfigure specifically when not observed.
-- **`AudioManager`** (`scripts/audio_manager.gd`):
-  - Procedurally generated 16-bit audio synthesizers (ambient cyber drone, glitch static bursts, terminal clicks, camera servo hum, footstep taps, and victory fanfare) with zero external asset dependencies.
-- **Post-Process Glitch Shader** (`shaders/glitch_screen.gdshader`):
-  - Screen-space horizontal slices, chromatic aberration, scanlines, and digital static.
-
----
-
-## 🚀 Running the Game
-
-Double-click `Run_Game.bat` in the root folder, or run:
-```powershell
-godot --path .
-```
+- **Play Online**: [https://adityasing9.github.io/Glitch-City/](https://adityasing9.github.io/Glitch-City/)
+- **Play Locally**: Double-click `Run_Game.bat` or run:
+  ```powershell
+  godot --path .
+  ```

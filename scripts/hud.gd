@@ -13,17 +13,33 @@ var objective_label: Label
 var coherence_label: Label
 var coherence_bar: ProgressBar
 
+# Scanner Telemetry
+var scanner_container: PanelContainer
+var scanner_label: Label
+
+# CCTV Feed Overlay
 var cctv_overlay: Control
 var cctv_rec_label: Label
 var cctv_status_label: Label
 var cctv_target_label: Label
 var cctv_controls_hint: Label
+var cctv_channel_label: Label
+
+# Datapad Reader Modal
+var datapad_modal: Control
+var datapad_title: Label
+var datapad_author: Label
+var datapad_body: Label
+var datapad_close_hint: Label
 
 var glitch_rect: ColorRect
 var glitch_material: ShaderMaterial
 
 var in_cctv_mode: bool = false
+var datapad_active: bool = false
 var time_elapsed: float = 0.0
+
+signal datapad_dismissed
 
 func _ready() -> void:
     _build_hud()
@@ -56,7 +72,7 @@ func _build_hud() -> void:
     root_control.add_child(top_left)
 
     var sys_label = Label.new()
-    sys_label.text = "SYS // WATCHER PROTOCOL v4.9  |  SECTOR 07"
+    sys_label.text = "SYS // WATCHER PROTOCOL v4.9  |  SECTOR 07  [F: FLASH]"
     sys_label.modulate = Color(0.1, 0.85, 1.0, 0.8)
     top_left.add_child(sys_label)
 
@@ -66,7 +82,7 @@ func _build_hud() -> void:
     top_left.add_child(coherence_label)
 
     coherence_bar = ProgressBar.new()
-    coherence_bar.custom_minimum_size = Vector2(220, 8)
+    coherence_bar.custom_minimum_size = Vector2(240, 8)
     coherence_bar.max_value = 1.0
     coherence_bar.value = 1.0
     coherence_bar.show_percentage = false
@@ -75,10 +91,10 @@ func _build_hud() -> void:
     # Top-Right Objective Banner
     var top_right = PanelContainer.new()
     top_right.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-    top_right.offset_left = -420
+    top_right.offset_left = -440
     top_right.offset_top = 25
     top_right.offset_right = -30
-    top_right.offset_bottom = 85
+    top_right.offset_bottom = 90
     root_control.add_child(top_right)
 
     var obj_vbox = VBoxContainer.new()
@@ -94,6 +110,21 @@ func _build_hud() -> void:
     objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     objective_label.modulate = Color(0.9, 0.95, 1.0)
     obj_vbox.add_child(objective_label)
+
+    # Scanner Telemetry Banner (Below crosshair)
+    scanner_container = PanelContainer.new()
+    scanner_container.set_anchors_preset(Control.PRESET_CENTER)
+    scanner_container.offset_left = -260
+    scanner_container.offset_top = 45
+    scanner_container.offset_right = 260
+    scanner_container.offset_bottom = 85
+    scanner_container.visible = false
+    root_control.add_child(scanner_container)
+
+    scanner_label = Label.new()
+    scanner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    scanner_label.modulate = Color(0.2, 0.9, 1.0)
+    scanner_container.add_child(scanner_label)
 
     # Center Reticle / Crosshair
     crosshair = Control.new()
@@ -121,9 +152,9 @@ func _build_hud() -> void:
     # Bottom Center Prompt
     prompt_container = PanelContainer.new()
     prompt_container.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-    prompt_container.offset_left = -220
+    prompt_container.offset_left = -260
     prompt_container.offset_top = -140
-    prompt_container.offset_right = 220
+    prompt_container.offset_right = 260
     prompt_container.offset_bottom = -95
     prompt_container.visible = false
     root_control.add_child(prompt_container)
@@ -136,6 +167,9 @@ func _build_hud() -> void:
 
     # 3. CCTV Feed Mode Overlay
     _build_cctv_overlay(root_control)
+    
+    # 4. Datapad Reader Modal
+    _build_datapad_modal(root_control)
 
 func _build_cctv_overlay(parent: Control) -> void:
     cctv_overlay = Control.new()
@@ -144,37 +178,43 @@ func _build_cctv_overlay(parent: Control) -> void:
     cctv_overlay.visible = false
     parent.add_child(cctv_overlay)
 
-    # Scanline corners / frame
+    # Corner brackets
     var frame_l = ColorRect.new()
-    frame_l.position = Vector2(20, 20)
-    frame_l.size = Vector2(30, 3)
-    frame_l.color = Color(0.2, 0.9, 1.0, 0.7)
+    frame_l.position = Vector2(25, 25)
+    frame_l.size = Vector2(40, 3)
+    frame_l.color = Color(0.2, 0.9, 1.0, 0.8)
     cctv_overlay.add_child(frame_l)
 
     var frame_r = ColorRect.new()
     frame_r.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-    frame_r.position = Vector2(-50, 20)
-    frame_r.size = Vector2(30, 3)
-    frame_r.color = Color(0.2, 0.9, 1.0, 0.7)
+    frame_r.position = Vector2(-65, 25)
+    frame_r.size = Vector2(40, 3)
+    frame_r.color = Color(0.2, 0.9, 1.0, 0.8)
     cctv_overlay.add_child(frame_r)
 
     cctv_rec_label = Label.new()
-    cctv_rec_label.text = "● REC [LIVE FEED] // CAM-01 (HIGH ANGLE SECTOR 07)"
+    cctv_rec_label.text = "● REC [LIVE FEED] // HIGH SECURITY SURVEILLANCE"
     cctv_rec_label.position = Vector2(60, 40)
     cctv_rec_label.modulate = Color(1.0, 0.2, 0.3)
     cctv_overlay.add_child(cctv_rec_label)
 
+    cctv_channel_label = Label.new()
+    cctv_channel_label.text = "FEED: CAM-01 [CHASM BRIDGE]"
+    cctv_channel_label.position = Vector2(60, 68)
+    cctv_channel_label.modulate = Color(0.2, 0.9, 1.0)
+    cctv_overlay.add_child(cctv_channel_label)
+
     cctv_status_label = Label.new()
     cctv_status_label.text = "OPTICAL MATRIX: SEARCHING TARGET..."
-    cctv_status_label.position = Vector2(60, 70)
-    cctv_status_label.modulate = Color(0.2, 0.9, 1.0)
+    cctv_status_label.position = Vector2(60, 96)
+    cctv_status_label.modulate = Color(1.0, 0.75, 0.2)
     cctv_overlay.add_child(cctv_status_label)
 
     cctv_target_label = Label.new()
     cctv_target_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-    cctv_target_label.offset_left = -300
+    cctv_target_label.offset_left = -320
     cctv_target_label.offset_top = 110
-    cctv_target_label.offset_right = 300
+    cctv_target_label.offset_right = 320
     cctv_target_label.offset_bottom = 150
     cctv_target_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     cctv_target_label.text = ""
@@ -183,14 +223,71 @@ func _build_cctv_overlay(parent: Control) -> void:
 
     cctv_controls_hint = Label.new()
     cctv_controls_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-    cctv_controls_hint.offset_left = -300
+    cctv_controls_hint.offset_left = -380
     cctv_controls_hint.offset_top = -80
-    cctv_controls_hint.offset_right = 300
+    cctv_controls_hint.offset_right = 380
     cctv_controls_hint.offset_bottom = -40
     cctv_controls_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    cctv_controls_hint.text = "[W / A / S / D] PAN CAMERA   |   [E / SPACE] DISENGAGE CONSOLE"
-    cctv_controls_hint.modulate = Color(1.0, 0.8, 0.2)
+    cctv_controls_hint.text = "[W/A/S/D] AIM CAMERA  |  [Q / 1 / 2] SWITCH CHANNEL  |  [E / SPACE] DISENGAGE"
+    cctv_controls_hint.modulate = Color(1.0, 0.85, 0.2)
     cctv_overlay.add_child(cctv_controls_hint)
+
+func _build_datapad_modal(parent: Control) -> void:
+    datapad_modal = Control.new()
+    datapad_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
+    datapad_modal.visible = false
+    parent.add_child(datapad_modal)
+
+    var dim = ColorRect.new()
+    dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+    dim.color = Color(0.01, 0.02, 0.05, 0.85)
+    datapad_modal.add_child(dim)
+
+    var center = CenterContainer.new()
+    center.set_anchors_preset(Control.PRESET_FULL_RECT)
+    datapad_modal.add_child(center)
+
+    var panel = PanelContainer.new()
+    panel.custom_minimum_size = Vector2(640, 420)
+    center.add_child(panel)
+
+    var vbox = VBoxContainer.new()
+    panel.add_child(vbox)
+
+    datapad_title = Label.new()
+    datapad_title.text = "ENCRYPTED MEMORY SHARD"
+    datapad_title.add_theme_font_size_override("font_size", 20)
+    datapad_title.modulate = Color(0.1, 0.9, 1.0)
+    vbox.add_child(datapad_title)
+
+    datapad_author = Label.new()
+    datapad_author.text = "SOURCE: UNKNOWN"
+    datapad_author.modulate = Color(1.0, 0.7, 0.2)
+    vbox.add_child(datapad_author)
+
+    var divider = ColorRect.new()
+    divider.custom_minimum_size = Vector2(0, 2)
+    divider.color = Color(0.2, 0.8, 1.0, 0.4)
+    vbox.add_child(divider)
+
+    var spacer = Control.new()
+    spacer.custom_minimum_size = Vector2(0, 15)
+    vbox.add_child(spacer)
+
+    datapad_body = Label.new()
+    datapad_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    datapad_body.modulate = Color(0.9, 0.95, 1.0)
+    vbox.add_child(datapad_body)
+
+    var spacer2 = Control.new()
+    spacer2.custom_minimum_size = Vector2(0, 25)
+    vbox.add_child(spacer2)
+
+    datapad_close_hint = Label.new()
+    datapad_close_hint.text = "[ PRESS E OR ESC TO CLOSE ARCHIVE ]"
+    datapad_close_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    datapad_close_hint.modulate = Color(0.4, 1.0, 0.6)
+    vbox.add_child(datapad_close_hint)
 
 func _process(delta: float) -> void:
     time_elapsed += delta
@@ -214,16 +311,29 @@ func set_prompt(text: String) -> void:
 func set_objective(text: String) -> void:
     objective_label.text = text
 
-func set_cctv_mode(active: bool) -> void:
+func update_scanner(obj_name: String, state_text: String, observer_text: String) -> void:
+    if obj_name.is_empty():
+        scanner_container.visible = false
+    else:
+        scanner_container.visible = true
+        scanner_label.text = "[ SCAN: %s | %s | %s ]" % [obj_name.to_upper(), state_text, observer_text]
+
+func set_cctv_mode(active: bool, cam_id: String = "CAM-01") -> void:
     in_cctv_mode = active
     cctv_overlay.visible = active
     crosshair.visible = not active
+    scanner_container.visible = false
     prompt_container.visible = false
     
     if active:
+        cctv_channel_label.text = "FEED: %s" % cam_id
         set_glitch_intensity(0.25)
     else:
         set_glitch_intensity(0.1)
+
+func set_cctv_channel_text(cam_id: String) -> void:
+    if cctv_channel_label:
+        cctv_channel_label.text = "FEED: %s" % cam_id
 
 func update_cctv_target(has_target: bool, target_name: String) -> void:
     if has_target:
@@ -234,6 +344,20 @@ func update_cctv_target(has_target: bool, target_name: String) -> void:
         cctv_status_label.text = "OPTICAL MATRIX: SEARCHING (AIM TOWARD CHASM BRIDGE)..."
         cctv_status_label.modulate = Color(1.0, 0.7, 0.2)
         cctv_target_label.text = ""
+
+func show_datapad(title_text: String, author_text: String, body_text: String) -> void:
+    datapad_active = true
+    datapad_title.text = title_text
+    datapad_author.text = author_text
+    datapad_body.text = body_text
+    datapad_modal.visible = true
+    crosshair.visible = false
+
+func hide_datapad() -> void:
+    datapad_active = false
+    datapad_modal.visible = false
+    crosshair.visible = true
+    emit_signal("datapad_dismissed")
 
 func _on_coherence_updated(coherence: float) -> void:
     coherence_bar.value = coherence
